@@ -7,6 +7,16 @@ All notable changes to the Specify CLI and templates are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.21] - 2025-11-14
+
+### Added
+
+- 新增 `specify_cn` 命令别名，会在启动 CLI 前自动设置 `SPECIFY_LANG=zh_CN`，方便直接进入中文界面。
+
+### Changed
+
+- `pyproject.toml` 中的 `project.scripts` 现在会导出 `specify_cn` 入口用于中文体验。
+
 ## [0.0.20] - 2025-10-14
 
 ### Added
