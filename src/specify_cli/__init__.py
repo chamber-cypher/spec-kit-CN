@@ -562,6 +562,51 @@ def merge_json_files(existing_path: Path, new_content: dict, verbose: bool = Fal
 
     return merged
 
+def replace_prompts_with_chinese(project_path: Path, verbose: bool = True, tracker: StepTracker | None = None) -> None:
+    """Replace English prompts with Chinese versions if SPECIFY_LANG is set to zh_CN."""
+    if os.environ.get("SPECIFY_LANG") != "zh_CN":
+        return
+
+    prompts_dir = project_path / ".github" / "prompts"
+    if not prompts_dir.exists():
+        return
+
+    if tracker:
+        tracker.add("prompts-i18n", t("replacing_prompts_with_chinese"))
+        tracker.start("prompts-i18n")
+    elif verbose:
+        console.print(f"[cyan]{t('replacing_prompts_with_chinese')}[/cyan]")
+
+    try:
+        # Get the directory where this module is located
+        module_dir = Path(__file__).parent
+        chinese_prompts_dir = module_dir / "prompts_cn"
+
+        if not chinese_prompts_dir.exists():
+            if verbose:
+                console.print(f"[yellow]{t('chinese_prompts_not_found')}[/yellow]")
+            return
+
+        replaced_count = 0
+        for prompt_file in chinese_prompts_dir.glob("*.prompt.md"):
+            dest_file = prompts_dir / prompt_file.name
+            if dest_file.exists():
+                shutil.copy2(prompt_file, dest_file)
+                replaced_count += 1
+                if verbose and not tracker:
+                    console.print(f"  [green]✓[/green] {t('replaced_prompt')}: {prompt_file.name}")
+
+        if tracker:
+            tracker.complete("prompts-i18n", t("replaced_prompts_count").format(count=replaced_count))
+        elif verbose:
+            console.print(f"[green]{t('replaced_prompts_count').format(count=replaced_count)}[/green]")
+
+    except Exception as e:
+        if tracker:
+            tracker.error("prompts-i18n", str(e))
+        elif verbose:
+            console.print(f"[red]{t('prompts_replace_error')}: {e}[/red]")
+
 def download_template_from_github(ai_assistant: str, download_dir: Path, *, script_type: str = "sh", verbose: bool = True, show_progress: bool = True, client: httpx.Client = None, debug: bool = False, github_token: str = None) -> Tuple[Path, dict]:
     repo_owner = "github"
     repo_name = "spec-kit"
@@ -824,6 +869,9 @@ def download_and_extract_template(project_path: Path, ai_assistant: str, script_
     else:
         if tracker:
             tracker.complete("extract")
+
+        # Replace prompts with Chinese versions if needed
+        replace_prompts_with_chinese(project_path, verbose=verbose, tracker=tracker)
     finally:
         if tracker:
             tracker.add("cleanup", t("cleanup_archive_step"))
